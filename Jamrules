@@ -1,0 +1,5 @@
+CC  = gcc ;
+C++ = g++ ;
+
+CCFLAGS  = -O2 -g -Wall -Wextra -Werror -Wno-deprecated-declarations ;
+C++FLAGS = -O2 -g -Wall -Wextra -Werror ;

@@ -1,0 +1,39 @@
+SubDir TOP fusesmb ;
+
+SubDirCcFlags -I/boot/system/develop/headers/userlandfs/fuse -DB_USE_POSITIVE_POSIX_ERRORS ;
+
+Library common :
+	configfile.c
+	hash.c
+	smbctx.c
+	stringlist.c
+	;	
+
+# -------------------------------------------------------------------
+# fusesmb
+# -------------------------------------------------------------------
+
+LINKLIBS  on fusesmb = -luserlandfs_fuse -lsmbclient -lposix_error_mapper ;
+LINKFLAGS on fusesmb = -Xlinker -soname=_APP_ ;
+
+Main fusesmb :
+	fusesmb.c
+	;
+	
+LinkLibraries fusesmb :
+	common
+	;
+
+# -------------------------------------------------------------------
+# fusesmb-scan
+# -------------------------------------------------------------------
+
+LINKLIBS  on fusesmb.cache = -lsmbclient -lposix_error_mapper ;
+
+Main fusesmb.cache :
+	cache.c
+	;
+	
+LinkLibraries fusesmb.cache :
+	common
+	;
