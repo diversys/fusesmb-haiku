@@ -286,7 +286,7 @@ static int fusesmb_getattr(const char *path, struct stat *stbuf)
 
         memset(&cache, 0, sizeof(cache));
         stat(cache_file, &cache);
-        memset(stbuf, 0, sizeof(stbuf));
+        memset(stbuf, 0, sizeof(*stbuf));
         stbuf->st_mode  = S_IFDIR | 0755;
         stbuf->st_nlink = 3;
         stbuf->st_size  = 4096;
