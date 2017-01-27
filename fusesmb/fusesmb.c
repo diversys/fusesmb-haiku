@@ -1126,7 +1126,7 @@ int main(int argc, char *argv[])
     if (notfound_cache == NULL)
         exit(EXIT_FAILURE);
 
-    fuse_main(my_argc, my_argv, &fusesmb_oper);
+    fuse_main(my_argc, my_argv, &fusesmb_oper, NULL);
 
     smbc_free_context(ctx, 1);
     smbc_free_context(rwd_ctx, 1);
