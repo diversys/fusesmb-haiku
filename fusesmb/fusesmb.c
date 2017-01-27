@@ -113,6 +113,12 @@ static void options_free(struct fusesmb_opt *opt)
         free(opt->global_username);
 }
 
+static SMBCFILE*
+get_smbcfile(struct fuse_file_info* file_info)
+{
+	return (SMBCFILE*)((uintptr_t)file_info->fh);
+}
+
 
 /*
  * Thread for cleaning up connections to hosts, current interval of
@@ -472,7 +478,7 @@ static int fusesmb_readdir(const char *path, void *h, fuse_fill_dir_t filler,
     else
     {
         pthread_mutex_lock(&ctx_mutex);
-        while (NULL != (pdirent = ctx->readdir(ctx, (SMBCFILE *)fi->fh)))
+        while (NULL != (pdirent = ctx->readdir(ctx, get_smbcfile(fi))))
         {
             if (pdirent->smbc_type == SMBC_DIR)
             {
@@ -515,7 +521,7 @@ static int fusesmb_releasedir(const char *path, struct fuse_file_info *fi)
         return 0;
 
     pthread_mutex_lock(&ctx_mutex);
-    ctx->closedir(ctx, (SMBCFILE *)fi->fh);
+    ctx->closedir(ctx, get_smbcfile(fi));
     pthread_mutex_unlock(&ctx_mutex);
     return 0;
 }
@@ -588,7 +594,7 @@ static int fusesmb_read(const char *path, char *buf, size_t size, off_t offset, 
     fi->fh = (unsigned long)file;
   seek:
 
-    if (rwd_ctx->lseek(rwd_ctx, (SMBCFILE *)fi->fh, offset, SEEK_SET) == (off_t) - 1)
+    if (rwd_ctx->lseek(rwd_ctx, get_smbcfile(fi), offset, SEEK_SET) == (off_t) - 1)
     {
         /* Bad file descriptor try to reopen */
         if (errno == EBADF)
@@ -602,7 +608,7 @@ static int fusesmb_read(const char *path, char *buf, size_t size, off_t offset, 
             return -errno;
         }
     }
-    if ((ssize = rwd_ctx->read(rwd_ctx, (SMBCFILE *)fi->fh, buf, size)) < 0)
+    if ((ssize = rwd_ctx->read(rwd_ctx, get_smbcfile(fi), buf, size)) < 0)
     {
         /* Bad file descriptor try to reopen */
         if (errno == EBADF)
@@ -655,7 +661,7 @@ static int fusesmb_write(const char *path, const char *buf, size_t size, off_t o
     fi->fh = (unsigned long)file;
   seek:
 
-    if (rwd_ctx->lseek(rwd_ctx, (SMBCFILE *)fi->fh, offset, SEEK_SET) == (off_t) - 1)
+    if (rwd_ctx->lseek(rwd_ctx, get_smbcfile(fi), offset, SEEK_SET) == (off_t) - 1)
     {
         /* Bad file descriptor try to reopen */
         if (errno == EBADF)
@@ -669,7 +675,7 @@ static int fusesmb_write(const char *path, const char *buf, size_t size, off_t o
             return -errno;
         }
     }
-    if ((ssize = rwd_ctx->write(rwd_ctx, (SMBCFILE *)fi->fh, (void *) buf, size)) < 0)
+    if ((ssize = rwd_ctx->write(rwd_ctx, get_smbcfile(fi), (void *) buf, size)) < 0)
     {
         /* Bad file descriptor try to reopen */
         if (errno == EBADF)
@@ -692,9 +698,9 @@ static int fusesmb_release(const char *path, struct fuse_file_info *fi)
     (void)path;
     pthread_mutex_lock(&rwd_ctx_mutex);
 #ifdef HAVE_LIBSMBCLIENT_CLOSE_FN
-    rwd_ctx->close_fn(rwd_ctx, (SMBCFILE *)fi->fh);
+    rwd_ctx->close_fn(rwd_ctx, get_smbcfile(fi));
 #else
-    rwd_ctx->close(rwd_ctx, (SMBCFILE *)fi->fh);
+    rwd_ctx->close(rwd_ctx, get_smbcfile(fi));
 #endif
     pthread_mutex_unlock(&rwd_ctx_mutex);
     return 0;
