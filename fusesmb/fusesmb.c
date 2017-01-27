@@ -33,6 +33,7 @@
 #include <dirent.h>
 #include <sys/param.h>
 #include <sys/statvfs.h>
+#include <sys/time.h>
 #include <pthread.h>
 #include <libsmbclient.h>
 #include <time.h>
