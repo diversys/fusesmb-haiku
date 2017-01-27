@@ -32,7 +32,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/param.h>
-#include <sys/vfs.h>
+#include <sys/statvfs.h>
 #include <pthread.h>
 #include <libsmbclient.h>
 #include <time.h>
@@ -748,12 +748,12 @@ static int fusesmb_mknod(const char *path, mode_t mode,
     return 0;
 }
 
-static int fusesmb_statfs(const char *path, struct statfs *fst)
+static int fusesmb_statfs(const char *path, struct statvfs *fst)
 {
     /* Returning stat of local filesystem, call is too expensive */
     (void)path;
-    memset(fst, 0, sizeof(struct statfs));
-    if (statfs("/", fst) != 0)
+    memset(fst, 0, sizeof(struct statvfs));
+    if (statvfs("/", fst) != 0)
         return -errno;
     return 0;
 }
