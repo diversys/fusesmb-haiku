@@ -450,7 +450,7 @@ static int fusesmb_readdir(const char *path, void *h, fuse_fill_dir_t filler,
                     if (strcmp(last_dir_entry, dir_entry) == 0)
                         continue;
 
-                    st.st_mode = DT_DIR << 12;
+                    st.st_mode = S_IFDIR;
                     filler(h, strtok(dir_entry, "\n"), &st, 0);
                     dircount++;
                     strncpy(last_dir_entry, dir_entry, 4096);
@@ -463,7 +463,7 @@ static int fusesmb_readdir(const char *path, void *h, fuse_fill_dir_t filler,
             return -ENOENT;
 
         /* The workgroup / host and share lists don't have . and .. , so putting them in */
-        st.st_mode = DT_DIR << 12;
+        st.st_mode = S_IFDIR;
         filler(h, ".", &st, 0);
         filler(h, "..", &st, 0);
         return 0;
@@ -476,12 +476,12 @@ static int fusesmb_readdir(const char *path, void *h, fuse_fill_dir_t filler,
         {
             if (pdirent->smbc_type == SMBC_DIR)
             {
-                st.st_mode = DT_DIR << 12;
+                st.st_mode = S_IFDIR;
                 filler(h, pdirent->name, &st, 0);
             }
             if (pdirent->smbc_type == SMBC_FILE)
             {
-                st.st_mode = DT_REG << 12;
+                st.st_mode = S_IFREG;
                 filler(h, pdirent->name, &st, 0);
             }
             if (slashcount(path) == 4 && 
