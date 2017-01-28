@@ -52,7 +52,6 @@
 */
 
 static pthread_mutex_t ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t rwd_ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
 static SMBCCTX *ctx, *rwd_ctx;
 pthread_t cleanup_thread;
 
@@ -134,11 +133,9 @@ static void *smb_purge_thread(void *data)
 
         pthread_mutex_lock(&ctx_mutex);
         ctx->callbacks.purge_cached_fn(ctx);
+        rwd_ctx->callbacks.purge_cached_fn(rwd_ctx);
         pthread_mutex_unlock(&ctx_mutex);
 
-        pthread_mutex_lock(&rwd_ctx_mutex);
-        rwd_ctx->callbacks.purge_cached_fn(rwd_ctx);
-        pthread_mutex_unlock(&rwd_ctx_mutex);
         /*
          * Look every minute in the notfound cache for items that are
          * no longer used
@@ -209,11 +206,8 @@ static void *smb_purge_thread(void *data)
         {
             pthread_mutex_lock(&ctx_mutex);
             ctx->timeout = opts.global_timeout * 1000;
-            pthread_mutex_unlock(&ctx_mutex);
-
-            pthread_mutex_lock(&rwd_ctx_mutex);
             rwd_ctx->timeout = opts.global_timeout * 1000;
-            pthread_mutex_unlock(&rwd_ctx_mutex);
+            pthread_mutex_unlock(&ctx_mutex);
         }
 
 
@@ -541,17 +535,17 @@ static int fusesmb_open(const char *path, struct fuse_file_info *fi)
     //    return -ENOENT;
     strcat(smb_path, stripworkgroup(path));
 
-    pthread_mutex_lock(&rwd_ctx_mutex);
+    pthread_mutex_lock(&ctx_mutex);
     file = rwd_ctx->open(rwd_ctx, smb_path, fi->flags, 0);
 
     if (file == NULL)
     {
-        pthread_mutex_unlock(&rwd_ctx_mutex);
+        pthread_mutex_unlock(&ctx_mutex);
         return -errno;
     }
 
     fi->fh = (unsigned long)file;
-    pthread_mutex_unlock(&rwd_ctx_mutex);
+    pthread_mutex_unlock(&ctx_mutex);
     return 0;
 }
 
@@ -568,7 +562,7 @@ static int fusesmb_read(const char *path, char *buf, size_t size, off_t offset, 
     int tries = 0;              //For number of retries before failing
     ssize_t ssize;              //Returned by ctx->read
 
-    pthread_mutex_lock(&rwd_ctx_mutex);
+    pthread_mutex_lock(&ctx_mutex);
     /* Ugly goto but it works ;) But IMHO easiest solution for error handling here */
     goto seek;
   reopen:
@@ -580,7 +574,7 @@ static int fusesmb_read(const char *path, char *buf, size_t size, off_t offset, 
             tries++;
             if (tries > 4)
             {
-                pthread_mutex_unlock(&rwd_ctx_mutex);
+                pthread_mutex_unlock(&ctx_mutex);
                 return -errno;
             }
             goto reopen;
@@ -588,7 +582,7 @@ static int fusesmb_read(const char *path, char *buf, size_t size, off_t offset, 
         /* Other errors from docs cannot be recovered from so returning the error */
         else
         {
-            pthread_mutex_unlock(&rwd_ctx_mutex);
+            pthread_mutex_unlock(&ctx_mutex);
             return -errno;
         }
     }
@@ -605,7 +599,7 @@ static int fusesmb_read(const char *path, char *buf, size_t size, off_t offset, 
         else
         {
             //SMB Init failed
-            pthread_mutex_unlock(&rwd_ctx_mutex);
+            pthread_mutex_unlock(&ctx_mutex);
             return -errno;
         }
     }
@@ -619,11 +613,11 @@ static int fusesmb_read(const char *path, char *buf, size_t size, off_t offset, 
         /* Tried opening a directory / or smb_init failed */
         else
         {
-            pthread_mutex_unlock(&rwd_ctx_mutex);
+            pthread_mutex_unlock(&ctx_mutex);
             return -errno;
         }
     }
-    pthread_mutex_unlock(&rwd_ctx_mutex);
+    pthread_mutex_unlock(&ctx_mutex);
     return (size_t) ssize;
 }
 
@@ -637,7 +631,7 @@ static int fusesmb_write(const char *path, const char *buf, size_t size, off_t o
     int tries = 0;              //For number of retries before failing
     ssize_t ssize;              //Returned by ctx->read
 
-    pthread_mutex_lock(&rwd_ctx_mutex);
+    pthread_mutex_lock(&ctx_mutex);
     /* Ugly goto but it works ;) But IMHO easiest solution for error handling here */
     goto seek;
   reopen:
@@ -649,13 +643,13 @@ static int fusesmb_write(const char *path, const char *buf, size_t size, off_t o
             tries++;
             if (tries > 4)
             {
-                pthread_mutex_unlock(&rwd_ctx_mutex);
+                pthread_mutex_unlock(&ctx_mutex);
                 return -errno;
             }
             goto reopen;
         }
         /* Other errors from docs cannot be recovered from so returning the error */
-        pthread_mutex_unlock(&rwd_ctx_mutex);
+        pthread_mutex_unlock(&ctx_mutex);
         return -errno;
 
     }
@@ -672,7 +666,7 @@ static int fusesmb_write(const char *path, const char *buf, size_t size, off_t o
         else
         {
             //SMB Init failed
-            pthread_mutex_unlock(&rwd_ctx_mutex);
+            pthread_mutex_unlock(&ctx_mutex);
             return -errno;
         }
     }
@@ -686,24 +680,24 @@ static int fusesmb_write(const char *path, const char *buf, size_t size, off_t o
         /* Tried opening a directory / or smb_init failed */
         else
         {
-            pthread_mutex_unlock(&rwd_ctx_mutex);
+            pthread_mutex_unlock(&ctx_mutex);
             return -errno;
         }
     }
-    pthread_mutex_unlock(&rwd_ctx_mutex);
+    pthread_mutex_unlock(&ctx_mutex);
     return (size_t) ssize;
 }
 
 static int fusesmb_release(const char *path, struct fuse_file_info *fi)
 {
     (void)path;
-    pthread_mutex_lock(&rwd_ctx_mutex);
+    pthread_mutex_lock(&ctx_mutex);
 #ifdef HAVE_LIBSMBCLIENT_CLOSE_FN
     rwd_ctx->close_fn(rwd_ctx, get_smbcfile(fi));
 #else
     rwd_ctx->close(rwd_ctx, get_smbcfile(fi));
 #endif
-    pthread_mutex_unlock(&rwd_ctx_mutex);
+    pthread_mutex_unlock(&ctx_mutex);
     return 0;
 
 }
