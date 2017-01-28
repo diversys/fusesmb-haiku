@@ -526,9 +526,8 @@ static int fusesmb_open(const char *path, struct fuse_file_info *fi)
     SMBCFILE *file;
     char smb_path[MY_MAXPATHLEN] = "smb:/";
 
-    /* You cannot open directories */
     if (slashcount(path) <= 3)
-        return -EACCES;
+        return 0;
 
     /* Not sure what this code is doing */
     //if((flags & 3) != O_RDONLY)
@@ -540,8 +539,14 @@ static int fusesmb_open(const char *path, struct fuse_file_info *fi)
 
     if (file == NULL)
     {
-        pthread_mutex_unlock(&ctx_mutex);
-        return -errno;
+        if (errno == EISDIR) {
+            strlcat(smb_path, "/", MY_MAXPATHLEN);
+            file = smbc_getFunctionOpen(rwd_ctx)(rwd_ctx, smb_path, fi->flags, 0);
+        }
+        if (file == NULL) {
+            pthread_mutex_unlock(&ctx_mutex);
+            return -errno;
+        }
     }
 
     fi->fh = (unsigned long)file;
