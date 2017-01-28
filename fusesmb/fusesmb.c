@@ -454,7 +454,7 @@ static int fusesmb_readdir(const char *path, void *h, fuse_fill_dir_t filler,
                     st.st_mode = S_IFDIR;
                     filler(h, strtok(dir_entry, "\n"), &st, 0);
                     dircount++;
-                    strncpy(last_dir_entry, dir_entry, 4096);
+                    strncpy(last_dir_entry, dir_entry, MY_MAXPATHLEN);
                 }
             }
         }
