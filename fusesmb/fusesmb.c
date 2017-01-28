@@ -754,6 +754,45 @@ static int fusesmb_mknod(const char *path, mode_t mode,
     return 0;
 }
 
+static int fusesmb_create(const char *path, mode_t mode, struct fuse_file_info* fi)
+{
+	char smb_path[MY_MAXPATHLEN] = "smb:/";
+	SMBCFILE *file;
+
+	if (slashcount(path) <= 3)
+		return -EACCES;
+
+	strcat(smb_path, stripworkgroup(path));
+	pthread_mutex_lock(&ctx_mutex);
+	if ((file = smbc_getFunctionCreat(rwd_ctx)(rwd_ctx, smb_path, mode)) == NULL)
+	{
+		pthread_mutex_unlock(&ctx_mutex);
+		return -errno;
+	}
+
+	fi->fh = (unsigned long) file;
+
+	pthread_mutex_unlock(&ctx_mutex);
+
+	/* Clear item from notfound_cache */
+	if (slashcount(path) == 4)
+	{
+		pthread_mutex_lock(&notfound_cache_mutex);
+		hnode_t *node = hash_lookup(notfound_cache, path);
+		if (node != NULL)
+		{
+			const void *key = hnode_getkey(node);
+			void *data = hnode_get(node);
+			hash_delete_free(notfound_cache, node);
+			free((void *) key);
+			free(data);
+		}
+		pthread_mutex_unlock(&notfound_cache_mutex);
+	}
+
+	return 0;
+}
+
 static int fusesmb_statfs(const char *path, struct statvfs *fst)
 {
     /* Returning stat of local filesystem, call is too expensive */
@@ -999,6 +1038,7 @@ static struct fuse_operations fusesmb_oper = {
     .fsync      = NULL, //fusesmb_fsync,
     .init       = fusesmb_init,
     .destroy    = fusesmb_destroy,
+    .create     = fusesmb_create,
 #ifdef HAVE_SETXATTR
     .setxattr   = fusesmb_setxattr,
     .getxattr   = fusesmb_getxattr,
