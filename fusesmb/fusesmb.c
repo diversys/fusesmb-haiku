@@ -25,6 +25,8 @@
 #include <fs_info.h>
 #define HAS_FUSE_HAIKU_EXTENSIONS
 
+#include "haiku/support.h"
+
 #include <fuse.h>
 #include <stdio.h>
 #include <string.h>
@@ -171,7 +173,8 @@ static void *smb_purge_thread(void *data)
         }
 
         char cachefile[1024];
-        snprintf(cachefile, 1024, "%s/.smb/fusesmb.cache", getenv("HOME"));
+        get_path_in_settings_dir(&cachefile[0], sizeof(cachefile),
+            "fusesmb.cache");
         struct stat st;
         memset(&st, 0, sizeof(struct stat));
 
@@ -263,7 +266,8 @@ static int fusesmb_getattr(const char *path, struct stat *stbuf)
     /* Check the cache for valid workgroup, hosts and shares */
     if (slashcount(path) <= 3)
     {
-        snprintf(cache_file, 1024, "%s/.smb/fusesmb.cache", getenv("HOME"));
+        get_path_in_settings_dir(&cache_file[0], sizeof(cache_file),
+            "fusesmb.cache");
 
         if (strlen(path) == 1 && path[0] == '/')
             path_exists = 1;
@@ -406,7 +410,8 @@ static int fusesmb_readdir(const char *path, void *h, fuse_fill_dir_t filler,
     if (slashcount(path) <= 2)
     {
         /* Listing Workgroups */
-        snprintf(cache_file, 1024, "%s/.smb/fusesmb.cache", getenv("HOME"));
+        get_path_in_settings_dir(&cache_file[0], sizeof(cache_file),
+            "fusesmb.cache");
         fp = fopen(cache_file, "r");
         if (!fp)
             return -ENOENT;
@@ -1078,30 +1083,14 @@ int main(int argc, char *argv[])
 	gHasHaikuFuseExtensions = 1;
 
     /* Check if the directory for smbcache exists and if not so create it */
-    char cache_path[1024];
-    snprintf(cache_path, 1024, "%s/.smb/", getenv("HOME"));
-    struct stat st;
-    if (-1 == stat(cache_path, &st))
-    {
-        if (errno != ENOENT)
-        {
-            fprintf(stderr, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-        if (-1 == mkdir(cache_path, 0777))
-        {
-            fprintf(stderr, strerror(errno));
-            exit(EXIT_FAILURE);
-       }
-    }
-    else if (!S_ISDIR(st.st_mode))
-    {
-        fprintf(stderr, "%s is not a directory\n", cache_path);
+    int status = create_settings_dir();
+    if (status != 0)
         exit(EXIT_FAILURE);
-    }
 
+    struct stat st;
     char configfile[1024];
-    snprintf(configfile, 1024, "%s/.smb/fusesmb.conf", getenv("HOME"));
+    get_path_in_settings_dir(&configfile[0], sizeof(configfile),
+        "fusesmb.conf");
     if (-1 == stat(configfile, &st))
     {
         if (errno != ENOENT)

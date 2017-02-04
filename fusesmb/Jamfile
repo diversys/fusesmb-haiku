@@ -7,13 +7,13 @@ Library common :
 	hash.c
 	smbctx.c
 	stringlist.c
-	;	
+	;
 
 # -------------------------------------------------------------------
 # fusesmb
 # -------------------------------------------------------------------
 
-LINKLIBS  on fusesmb = -luserlandfs_fuse -lsmbclient -lposix_error_mapper ;
+LINKLIBS  on fusesmb = -lbe -luserlandfs_fuse -lsmbclient -lposix_error_mapper ;
 LINKFLAGS on fusesmb = -Xlinker -soname=_APP_ ;
 
 Main fusesmb :
@@ -22,13 +22,14 @@ Main fusesmb :
 	
 LinkLibraries fusesmb :
 	common
+	haiku-support
 	;
 
 # -------------------------------------------------------------------
 # fusesmb-scan
 # -------------------------------------------------------------------
 
-LINKLIBS  on fusesmb-scan = -lsmbclient -lposix_error_mapper ;
+LINKLIBS  on fusesmb-scan = -lbe -lsmbclient -lposix_error_mapper ;
 
 Main fusesmb-scan :
 	cache.c
@@ -36,4 +37,7 @@ Main fusesmb-scan :
 	
 LinkLibraries fusesmb-scan :
 	common
+	haiku-support
 	;
+
+SubInclude TOP fusesmb haiku ;

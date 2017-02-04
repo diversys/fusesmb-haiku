@@ -18,6 +18,8 @@
 
 #include "config.h"
 
+#include "haiku/support.h"
+
 #include <libsmbclient.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -466,9 +468,11 @@ int cache_servers(SMBCCTX *ctx)
     sl_casesort(cache);
     char cachefile[1024];
     char tmp_cachefile[1024];
-    snprintf(tmp_cachefile, 1024, "%s/.smb/fusesmb.cache.XXXXX", getenv("HOME"));
+    get_path_in_settings_dir(&tmp_cachefile[0], sizeof(tmp_cachefile),
+        	"fusesmb.cache.XXXXX");
     mkstemp(tmp_cachefile);
-    snprintf(cachefile, 1024, "%s/.smb/fusesmb.cache", getenv("HOME"));
+    get_path_in_settings_dir(&cachefile[0], sizeof(cachefile),
+       	"fusesmb.cache");
     mode_t oldmask;
     oldmask = umask(022);
     FILE *fp = fopen(tmp_cachefile, "w");
@@ -493,10 +497,11 @@ int cache_servers(SMBCCTX *ctx)
 int main(int argc, char *argv[])
 {
     char pidfile[1024];
-    snprintf(pidfile, 1024, "%s/.smb/fusesmb-scan.pid", getenv("HOME"));
-
+    get_path_in_settings_dir(&pidfile[0], sizeof(pidfile),
+        "fusesmb-scan.pid");
     char configfile[1024];
-    snprintf(configfile, 1024, "%s/.smb/fusesmb.conf", getenv("HOME"));
+    get_path_in_settings_dir(&configfile[0], sizeof(configfile),
+        "fusesmb.conf");
     if (-1 == config_init(&cfg, configfile))
     {
         fprintf(stderr, "Could not open config file: %s (%s)", configfile, strerror(errno));

@@ -1,0 +1,5 @@
+SubDir TOP fusesmb haiku ;
+
+Library haiku-support :
+	SettingsPath.cpp
+	;
