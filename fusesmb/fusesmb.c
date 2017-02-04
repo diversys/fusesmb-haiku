@@ -84,7 +84,7 @@ config_t cfg;
 pthread_mutex_t cfg_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct fusesmb_opt opts;
 pthread_mutex_t opts_mutex = PTHREAD_MUTEX_INITIALIZER;
-char fusesmb_cache_bin[MAXPATHLEN];
+char fusesmb_scan_bin[MAXPATHLEN];
 
 static void options_read(config_t *cfg, struct fusesmb_opt *opt)
 {
@@ -181,12 +181,12 @@ static void *smb_purge_thread(void *data)
             {
                 if (errno == ENOENT)
                 {
-                    system(fusesmb_cache_bin);
+                    system(fusesmb_scan_bin);
                 }
             }
             else if (time(NULL) - st.st_mtime > opts.global_interval * 60)
             {
-                system("fusesmb.cache");
+                system(fusesmb_scan_bin);
             }
         }
 
@@ -1131,15 +1131,15 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
     }
-    /* Check if fusesmb.cache can be found
-       we're looking in FUSESMB_CACHE_BINDIR, $PATH or in cwd */
-    if (-1 == stat(FUSESMB_CACHE_BINDIR"/fusesmb.cache", &st))
+    /* Check if fusesmb-scan can be found
+       we're looking in FUSESMB_SCAN_BINDIR, $PATH or in cwd */
+    if (-1 == stat(FUSESMB_SCAN_BINDIR"/fusesmb-scan", &st))
     {
-        if (-1 == stat("fusesmb.cache", &st))
+        if (-1 == stat("fusesmb-scan", &st))
         {
-            fprintf(stderr, "Could not find the required file fusesmb.cache.\n"
+            fprintf(stderr, "Could not find the required file fusesmb-scan.\n"
                             "This file should either be in:\n"
-                            " - "FUSESMB_CACHE_BINDIR"\n"
+                            " - "FUSESMB_SCAN_BINDIR"\n"
                             " - $PATH\n"
                             " - your current working directory\n"
                             "(%s)\n", strerror(errno));
@@ -1147,12 +1147,12 @@ int main(int argc, char *argv[])
         }
         else
         {
-            strncpy(fusesmb_cache_bin, "fusesmb.cache", MAXPATHLEN-1);
+            strncpy(fusesmb_scan_bin, "fusesmb-scan", MAXPATHLEN-1);
         }
     }
     else
     {
-        strncpy(fusesmb_cache_bin, FUSESMB_CACHE_BINDIR"/fusesmb.cache", MAXPATHLEN-1);
+        strncpy(fusesmb_scan_bin, FUSESMB_SCAN_BINDIR"/fusesmb-scan", MAXPATHLEN-1);
     }
 
     if (-1 == config_init(&cfg, configfile))

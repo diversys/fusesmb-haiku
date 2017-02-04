@@ -28,12 +28,12 @@ LinkLibraries fusesmb :
 # fusesmb-scan
 # -------------------------------------------------------------------
 
-LINKLIBS  on fusesmb.cache = -lsmbclient -lposix_error_mapper ;
+LINKLIBS  on fusesmb-scan = -lsmbclient -lposix_error_mapper ;
 
-Main fusesmb.cache :
+Main fusesmb-scan :
 	cache.c
 	;
 	
-LinkLibraries fusesmb.cache :
+LinkLibraries fusesmb-scan :
 	common
 	;

@@ -493,7 +493,7 @@ int cache_servers(SMBCCTX *ctx)
 int main(int argc, char *argv[])
 {
     char pidfile[1024];
-    snprintf(pidfile, 1024, "%s/.smb/fusesmb.cache.pid", getenv("HOME"));
+    snprintf(pidfile, 1024, "%s/.smb/fusesmb-scan.pid", getenv("HOME"));
 
     char configfile[1024];
     snprintf(configfile, 1024, "%s/.smb/fusesmb.conf", getenv("HOME"));
