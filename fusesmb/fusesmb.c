@@ -22,6 +22,9 @@
 
 #include "config.h"
 
+#include <fs_info.h>
+#define HAS_FUSE_HAIKU_EXTENSIONS
+
 #include <fuse.h>
 #include <stdio.h>
 #include <string.h>
@@ -1018,6 +1021,21 @@ static void fusesmb_destroy(void *private_data)
 
 }
 
+static int fusesmb_getfsinfo(struct fs_info* info)
+{
+    memset(info, 0, sizeof(*info));
+    info->flags = B_FS_IS_PERSISTENT | B_FS_IS_SHARED;
+        // TODO: find out if read-only
+    info->block_size = 4096;
+    info->io_size = 128 * 1024;
+    info->total_blocks = (100ULL * 1024 * 1024 * 1024) / info->block_size;
+    info->free_blocks = info->total_blocks;
+    info->total_nodes = 100;
+    info->free_nodes = 100;
+    strlcpy(info->volume_name, "SMB Network", sizeof(info->volume_name));
+    return 0;
+}
+
 static struct fuse_operations fusesmb_oper = {
     .getattr    = fusesmb_getattr,
     .readlink   = NULL, //fusesmb_readlink,
@@ -1050,11 +1068,15 @@ static struct fuse_operations fusesmb_oper = {
     .listxattr  = fusesmb_listxattr,
     .removexattr= fusesmb_removexattr,
 #endif
+
+    .get_fs_info = fusesmb_getfsinfo,
 };
 
 
 int main(int argc, char *argv[])
 {
+	gHasHaikuFuseExtensions = 1;
+
     /* Check if the directory for smbcache exists and if not so create it */
     char cache_path[1024];
     snprintf(cache_path, 1024, "%s/.smb/", getenv("HOME"));
