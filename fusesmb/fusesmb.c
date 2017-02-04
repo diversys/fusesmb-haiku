@@ -356,11 +356,11 @@ static int fusesmb_getattr(const char *path, struct stat *stbuf)
             return -errno;
 
         }
-        
+
         stbuf->st_mode &= ~(S_IXUSR | S_IXGRP | S_IXOTH);
         	// remove executable bits (Samba uses them for certain DOS file
         	// attributes)
-        
+
         pthread_mutex_unlock(&ctx_mutex);
         return 0;
 
@@ -498,7 +498,7 @@ static int fusesmb_readdir(const char *path, void *h, fuse_fill_dir_t filler,
                 st.st_mode = S_IFREG;
                 filler(h, pdirent->name, &st, 0);
             }
-            if (slashcount(path) == 4 && 
+            if (slashcount(path) == 4 &&
                 (pdirent->smbc_type == SMBC_FILE || pdirent->smbc_type == SMBC_DIR))
             {
                 /* Clear item from notfound_cache */
@@ -868,7 +868,7 @@ static int fusesmb_mkdir(const char *path, mode_t mode)
         return -errno;
     }
     pthread_mutex_unlock(&ctx_mutex);
-    
+
     /* Clear item from notfound_cache */
     if (slashcount(path) == 4)
     {
