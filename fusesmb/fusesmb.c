@@ -1055,11 +1055,6 @@ static struct fuse_operations fusesmb_oper = {
 
 int main(int argc, char *argv[])
 {
-    /* Workaround for bug in libsmbclient:
-       Limit reads to 32 kB
-     */
-    int my_argc = 0, i = 0;
-
     /* Check if the directory for smbcache exists and if not so create it */
     char cache_path[1024];
     snprintf(cache_path, 1024, "%s/.smb/", getenv("HOME"));
@@ -1144,20 +1139,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    char **my_argv = (char **) malloc((argc + 10) * sizeof(char *));
-    if (my_argv == NULL)
-        exit(EXIT_FAILURE);
-
-    /* libsmbclient doesn't work with reads bigger than 32k */
-    char *max_read = "-omax_read=32768";
-
-    for (i = 0; i < argc; i++)
-    {
-        my_argv[i] = argv[i];
-        my_argc++;
-    }
-    my_argv[my_argc++] = max_read;
-
     options_read(&cfg, &opts);
 
     ctx = fusesmb_new_context(&cfg, &cfg_mutex);
@@ -1170,7 +1151,7 @@ int main(int argc, char *argv[])
     if (notfound_cache == NULL)
         exit(EXIT_FAILURE);
 
-    fuse_main(my_argc, my_argv, &fusesmb_oper, NULL);
+    fuse_main(argc, argv, &fusesmb_oper, NULL);
 
     smbc_free_context(ctx, 1);
     smbc_free_context(rwd_ctx, 1);
