@@ -349,6 +349,11 @@ static int fusesmb_getattr(const char *path, struct stat *stbuf)
             return -errno;
 
         }
+        
+        stbuf->st_mode &= ~(S_IXUSR | S_IXGRP | S_IXOTH);
+        	// remove executable bits (Samba uses them for certain DOS file
+        	// attributes)
+        
         pthread_mutex_unlock(&ctx_mutex);
         return 0;
 
