@@ -4,7 +4,7 @@
  */
 
 /* C interface for Haiku support functionality used inside fusesmb
-   (e.g. settings path, dialog box for entering auth data, ...)
+   (settings path, dialog box for entering auth data, ...)
 */
 
 #ifndef HAIKU_SUPPORT_H
@@ -17,9 +17,18 @@
 extern "C" {
 #endif
 
+// Settings
 int create_settings_dir();
 void get_path_in_settings_dir(char* outBuffer, size_t outBufferSize,
 	const char* fileName);
+
+// Authentication
+void get_authentication(const char* server, const char* share,
+	char* workgroup, int workgroupMaxLength,
+	char* username, int usernameMaxLength,
+	char* password, int passwordMaxLength);
+
+int show_authentication_request(const char* path);
 
 
 #ifdef __cplusplus

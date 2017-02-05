@@ -13,13 +13,13 @@ Library common :
 # fusesmb
 # -------------------------------------------------------------------
 
-LINKLIBS  on fusesmb = -lbe -luserlandfs_fuse -lsmbclient -lposix_error_mapper ;
+LINKLIBS  on fusesmb = -lbe -llocalestub -luserlandfs_fuse -lsmbclient -lposix_error_mapper -lstdc++ ;
 LINKFLAGS on fusesmb = -Xlinker -soname=_APP_ ;
 
 Main fusesmb :
 	fusesmb.c
 	;
-	
+
 LinkLibraries fusesmb :
 	common
 	haiku-support
@@ -29,12 +29,12 @@ LinkLibraries fusesmb :
 # fusesmb-scan
 # -------------------------------------------------------------------
 
-LINKLIBS  on fusesmb-scan = -lbe -lsmbclient -lposix_error_mapper ;
+LINKLIBS  on fusesmb-scan = -lbe -llocalestub -lsmbclient -lposix_error_mapper -lstdc++ ;
 
 Main fusesmb-scan :
 	cache.c
 	;
-	
+
 LinkLibraries fusesmb-scan :
 	common
 	haiku-support

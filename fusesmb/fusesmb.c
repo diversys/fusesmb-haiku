@@ -48,6 +48,11 @@
 
 #define MY_MAXPATHLEN (MAXPATHLEN + 256)
 
+#define FILE_HANDLE_NEEDS_AUTHENTICATION 0x7
+	/* fusesmb uses the file handle to store pointers, so this is just
+	   a unique value which will never be a valid pointer (and also not
+	   NULL) */
+
 /* Mutex for locking the Samba context */
 
 /* To prevent deadlock, locking order should be:
@@ -378,8 +383,14 @@ static int fusesmb_opendir(const char *path, struct fuse_file_info *fi)
     dir = ctx->opendir(ctx, smb_path);
     if (dir == NULL)
     {
-        pthread_mutex_unlock(&ctx_mutex);
-        return -errno;
+        if (errno != EACCES) {
+            pthread_mutex_unlock(&ctx_mutex);
+            return -errno;
+        } else {
+            fi->fh = FILE_HANDLE_NEEDS_AUTHENTICATION;
+            pthread_mutex_unlock(&ctx_mutex);
+            return 0;
+        }
     }
     fi->fh = (unsigned long)dir;
     pthread_mutex_unlock(&ctx_mutex);
@@ -485,6 +496,17 @@ static int fusesmb_readdir(const char *path, void *h, fuse_fill_dir_t filler,
     /* Listing contents of a share */
     else
     {
+        while (fi->fh == FILE_HANDLE_NEEDS_AUTHENTICATION) {
+            int result = show_authentication_request(path);
+            if (result != 0) {
+                // User cancelled
+                return -EACCES;
+            }
+            int status = fusesmb_opendir(path, fi);
+            if (status != 0)
+                return status;
+        }
+
         pthread_mutex_lock(&ctx_mutex);
         while (NULL != (pdirent = ctx->readdir(ctx, get_smbcfile(fi))))
         {
