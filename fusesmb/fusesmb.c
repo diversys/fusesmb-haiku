@@ -93,6 +93,8 @@ struct fusesmb_opt opts;
 pthread_mutex_t opts_mutex = PTHREAD_MUTEX_INITIALIZER;
 char fusesmb_scan_bin[MAXPATHLEN];
 
+static const char kMimeTypeAttributeName[] = "BEOS:TYPE";
+
 static void options_read(config_t *cfg, struct fusesmb_opt *opt)
 {
     if (-1 == config_read_bool(cfg, "global", "showhiddenshares", &(opt->global_showhiddenshares)))
@@ -1032,6 +1034,74 @@ static int fusesmb_rename(const char *path, const char *new_path)
     return 0;
 }
 
+static int fusesmb_setxattr(const char* path, const char* name, const char* value,
+    size_t size, int flags)
+{
+	printf("fusesmb_setxattr path=%s\n", path);
+
+    (void)path;
+    (void)name;
+    (void)value;
+    (void)size;
+    (void)flags;
+    return -EACCES;
+}
+
+static int fusesmb_getxattr(const char* path, const char* name, char* value,
+    size_t size)
+{
+	printf("fusesmb_getxattr path=%s size=%ld\n", path, size);
+
+    if (strcmp(name, "BEOS:TYPE") != 0)
+        return -ENOATTR;
+
+    char temp[256];
+    if (size == 0) {
+        value = &temp[0];
+        size = sizeof(temp);
+    }
+
+    switch (slashcount(path)) {
+        case 1:
+            // Workgroup folder
+            strlcpy(value, kWorkgroupFolderMimeType, size);
+            break;
+
+        case 2:
+            // Server folder
+            strlcpy(value, kServerFolderMimeType, size);
+            break;
+
+        case 3:
+            // Share folder
+            strlcpy(value, kShareFolderMimeType, size);
+            break;
+
+        default:
+            // File or folder in share
+            return -ENOATTR;
+    }
+
+    return strlen(value) + 1;
+}
+
+static int fusesmb_listxattr(const char* path, char* list, size_t size)
+{
+	printf("fusesmb_listxattr path=%s size=%ld (ret %ld)\n", path, size, sizeof(kMimeTypeAttributeName));
+    (void)path;
+    if (size > 0)
+        strlcpy(list, kMimeTypeAttributeName, size);
+    return sizeof(kMimeTypeAttributeName);
+}
+
+static int fusesmb_removexattr(const char* path, const char* name)
+{
+	printf("fusesmb_removexattr path=%s\n", path);
+    (void)path;
+    (void)name;
+    return -EACCES;
+}
+
 static void *fusesmb_init()
 {
     debug();
@@ -1051,7 +1121,8 @@ static void fusesmb_destroy(void *private_data)
 static int fusesmb_getfsinfo(struct fs_info* info)
 {
     memset(info, 0, sizeof(*info));
-    info->flags = B_FS_IS_PERSISTENT | B_FS_IS_SHARED;
+    info->flags = B_FS_IS_PERSISTENT | B_FS_IS_SHARED
+        | B_FS_HAS_ATTR | B_FS_HAS_MIME;
         // TODO: find out if read-only
     info->block_size = 4096;
     info->io_size = 128 * 1024;
@@ -1089,12 +1160,10 @@ static struct fuse_operations fusesmb_oper = {
     .init       = fusesmb_init,
     .destroy    = fusesmb_destroy,
     .create     = fusesmb_create,
-#ifdef HAVE_SETXATTR
     .setxattr   = fusesmb_setxattr,
     .getxattr   = fusesmb_getxattr,
     .listxattr  = fusesmb_listxattr,
     .removexattr= fusesmb_removexattr,
-#endif
 
     .get_fs_info = fusesmb_getfsinfo,
 };
@@ -1173,6 +1242,8 @@ int main(int argc, char *argv[])
     }
 
     options_read(&cfg, &opts);
+
+    register_mime_types();
 
     ctx = fusesmb_new_context(&cfg, &cfg_mutex);
     rwd_ctx = fusesmb_new_context(&cfg, &cfg_mutex);

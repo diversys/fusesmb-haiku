@@ -3,3 +3,8 @@ C++ = g++ ;
 
 CCFLAGS  = -O2 -g -Wall -Wextra -Werror -Wno-deprecated-declarations ;
 C++FLAGS = -O2 -g -Wall -Wextra -Werror ;
+
+actions AddResources {
+	rc -o resources.rsrc $(2)
+	xres -o $(1) resources.rsrc
+}

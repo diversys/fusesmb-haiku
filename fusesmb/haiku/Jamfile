@@ -2,5 +2,6 @@ SubDir TOP fusesmb haiku ;
 
 Library haiku-support :
 	Authentication.cpp
+	RegisterMimeTypes.cpp
 	SettingsPath.cpp
 	;

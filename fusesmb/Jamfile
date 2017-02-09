@@ -25,6 +25,10 @@ LinkLibraries fusesmb :
 	haiku-support
 	;
 
+AddResources fusesmb :
+	haiku/fusesmb.rdef
+	;
+
 # -------------------------------------------------------------------
 # fusesmb-scan
 # -------------------------------------------------------------------
