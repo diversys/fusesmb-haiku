@@ -2,11 +2,14 @@ SubDir TOP fusesmb ;
 
 SubDirCcFlags -I/boot/system/develop/headers/userlandfs/fuse -DB_USE_POSITIVE_POSIX_ERRORS ;
 
-Library common :
+Library configfile :
 	configfile.c
+	stringlist.c
+	;
+
+Library common :
 	hash.c
 	smbctx.c
-	stringlist.c
 	;
 
 # -------------------------------------------------------------------
@@ -22,6 +25,7 @@ Main fusesmb :
 
 LinkLibraries fusesmb :
 	common
+	configfile
 	haiku-support
 	;
 
@@ -41,6 +45,7 @@ Main fusesmb-scan :
 
 LinkLibraries fusesmb-scan :
 	common
+	configfile
 	haiku-support
 	;
 

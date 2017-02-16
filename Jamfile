@@ -1,3 +1,4 @@
 SubDir TOP ;
 
 SubInclude TOP fusesmb ;
+SubInclude TOP settings_add-on ;
