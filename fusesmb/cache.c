@@ -399,6 +399,13 @@ int cache_servers(SMBCCTX *ctx)
         ctx->closedir(ctx, dir);
         sl_free(cache);
         //smbc_free_context(ctx, 1);
+
+        // No servers found, remove cache file
+        char cachefile[1024];
+        get_path_in_settings_dir(&cachefile[0], sizeof(cachefile),
+            "fusesmb.cache");
+        unlink(cachefile);
+
         return -1;
     }
 
