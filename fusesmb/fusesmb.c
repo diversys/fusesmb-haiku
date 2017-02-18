@@ -65,19 +65,6 @@ static pthread_mutex_t ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
 static SMBCCTX *ctx, *rwd_ctx;
 pthread_t cleanup_thread;
 
-/*
- * Hash for storing files/directories that were not found, an optimisation
- * for programs like konqueror and freevo that do a lot of lookups:
- * .directory, share.fxd etc..
- */
-static hash_t *notfound_cache;
-static pthread_mutex_t notfound_cache_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-
-typedef struct {
-    time_t ctime;  /* Time of creation */
-    int err;       /* errno variable */
-} notfound_node_t;
 
 struct fusesmb_opt {
     int global_showhiddenshares;
@@ -139,7 +126,6 @@ get_smbcfile(struct fuse_file_info* file_info)
 static void *smb_purge_thread(void *data)
 {
     (void)data;
-    int count = 0;
     while (1)
     {
 
@@ -147,37 +133,6 @@ static void *smb_purge_thread(void *data)
         ctx->callbacks.purge_cached_fn(ctx);
         rwd_ctx->callbacks.purge_cached_fn(rwd_ctx);
         pthread_mutex_unlock(&ctx_mutex);
-
-        /*
-         * Look every minute in the notfound cache for items that are
-         * no longer used
-         */
-        if (count > (60 / 15)) /* 1 minute */
-        {
-            pthread_mutex_lock(&notfound_cache_mutex);
-            hscan_t sc;
-            hash_scan_begin(&sc, notfound_cache);
-            hnode_t *n;
-            while (NULL != (n = hash_scan_next(&sc)))
-            {
-                notfound_node_t *data = hnode_get(n);
-                if (time(NULL) - data->ctime > 15 * 60) /* 15 minutes */
-                {
-                    const void *key = hnode_getkey(n);
-                    debug("Deleting notfound node: %s", (char *)key);
-                    hash_scan_delfree(notfound_cache, n);
-                    free((void *)key);
-                    free(data);
-                }
-
-            }
-            pthread_mutex_unlock(&notfound_cache_mutex);
-            count = 0;
-        }
-        else
-        {
-            count++;
-        }
 
         char cachefile[1024];
         get_path_in_settings_dir(&cachefile[0], sizeof(cachefile),
@@ -316,52 +271,12 @@ static int fusesmb_getattr(const char *path, struct stat *stbuf)
     /* We're within a share here  */
     else
     {
-        /* Prevent connecting too often to a share because this is slow */
-        if (slashcount(path) == 4)
-        {
-            pthread_mutex_lock(&notfound_cache_mutex);
-            hnode_t *node = hash_lookup(notfound_cache, path);
-            if (node)
-            {
-                debug("NotFoundCache hit for: %s", path);
-                notfound_node_t *data = hnode_get(node);
-                int err = data->err;
-                data->ctime = time(NULL);
-                pthread_mutex_unlock(&notfound_cache_mutex);
-                return -err;
-            }
-            pthread_mutex_unlock(&notfound_cache_mutex);
-        }
-
         strcat(smb_path, stripworkgroup(path));
         pthread_mutex_lock(&ctx_mutex);
         if (ctx->stat(ctx, smb_path, stbuf) < 0)
         {
             pthread_mutex_unlock(&ctx_mutex);
-            if (slashcount(path) == 4)
-            {
-                int err = errno;
-                pthread_mutex_lock(&notfound_cache_mutex);
-                char *key = strdup(path);
-                if (key == NULL)
-                {
-                    pthread_mutex_unlock(&notfound_cache_mutex);
-                    return -errno;
-                }
-                notfound_node_t *data = (notfound_node_t *)malloc(sizeof(notfound_node_t));
-                if (data == NULL)
-                {
-                    pthread_mutex_unlock(&notfound_cache_mutex);
-                    return -errno;
-                }
-                data->ctime = time(NULL);
-                data->err = err;
-
-                hash_alloc_insert(notfound_cache, key, data);
-                pthread_mutex_unlock(&notfound_cache_mutex);
-            }
             return -errno;
-
         }
 
         stbuf->st_mode &= ~(S_IXUSR | S_IXGRP | S_IXOTH);
@@ -521,24 +436,6 @@ static int fusesmb_readdir(const char *path, void *h, fuse_fill_dir_t filler,
             {
                 st.st_mode = S_IFREG;
                 filler(h, pdirent->name, &st, 0);
-            }
-            if (slashcount(path) == 4 &&
-                (pdirent->smbc_type == SMBC_FILE || pdirent->smbc_type == SMBC_DIR))
-            {
-                /* Clear item from notfound_cache */
-		pthread_mutex_lock(&notfound_cache_mutex);
-                char full_entry_path[MY_MAXPATHLEN];
-                snprintf(full_entry_path, sizeof(full_entry_path)-1, "%s/%s", path, pdirent->name);
-                hnode_t *node = hash_lookup(notfound_cache, full_entry_path);
-                if (node != NULL)
-                {
-                    void *data = hnode_get(node);
-                    const void *key = hnode_getkey(node);
-                    hash_delete_free(notfound_cache, node);
-                    free((void *)key);
-                    free(data);
-                }
-                pthread_mutex_unlock(&notfound_cache_mutex);
             }
         }
         pthread_mutex_unlock(&ctx_mutex);
@@ -773,21 +670,7 @@ static int fusesmb_mknod(const char *path, mode_t mode,
 #endif
 
     pthread_mutex_unlock(&ctx_mutex);
-    /* Clear item from notfound_cache */
-    if (slashcount(path) == 4)
-    {
-        pthread_mutex_lock(&notfound_cache_mutex);
-        hnode_t *node = hash_lookup(notfound_cache, path);
-        if (node != NULL)
-        {
-            const void *key = hnode_getkey(node);
-            void *data = hnode_get(node);
-            hash_delete_free(notfound_cache, node);
-            free((void *)key);
-            free(data);
-        }
-        pthread_mutex_unlock(&notfound_cache_mutex);
-    }
+
     return 0;
 }
 
@@ -810,22 +693,6 @@ static int fusesmb_create(const char *path, mode_t mode, struct fuse_file_info* 
 	fi->fh = (unsigned long) file;
 
 	pthread_mutex_unlock(&ctx_mutex);
-
-	/* Clear item from notfound_cache */
-	if (slashcount(path) == 4)
-	{
-		pthread_mutex_lock(&notfound_cache_mutex);
-		hnode_t *node = hash_lookup(notfound_cache, path);
-		if (node != NULL)
-		{
-			const void *key = hnode_getkey(node);
-			void *data = hnode_get(node);
-			hash_delete_free(notfound_cache, node);
-			free((void *) key);
-			free(data);
-		}
-		pthread_mutex_unlock(&notfound_cache_mutex);
-	}
 
 	return 0;
 }
@@ -893,21 +760,6 @@ static int fusesmb_mkdir(const char *path, mode_t mode)
     }
     pthread_mutex_unlock(&ctx_mutex);
 
-    /* Clear item from notfound_cache */
-    if (slashcount(path) == 4)
-    {
-        pthread_mutex_lock(&notfound_cache_mutex);
-	hnode_t *node = hash_lookup(notfound_cache, path);
-	if (node != NULL)
-	{
-	    void *data = hnode_get(node);
-	    const void *key = hnode_getkey(node);
-	    hash_delete_free(notfound_cache, node);
-	    free((void *)key);
-	    free(data);
-	}
-	pthread_mutex_unlock(&notfound_cache_mutex);
-    }
     return 0;
 }
 
@@ -1251,10 +1103,6 @@ int main(int argc, char *argv[])
     if (ctx == NULL || rwd_ctx == NULL)
         exit(EXIT_FAILURE);
 
-    notfound_cache = hash_create(HASHCOUNT_T_MAX, NULL, NULL);
-    if (notfound_cache == NULL)
-        exit(EXIT_FAILURE);
-
     fuse_main(argc, argv, &fusesmb_oper, NULL);
 
     smbc_free_context(ctx, 1);
@@ -1263,18 +1111,5 @@ int main(int argc, char *argv[])
     options_free(&opts);
     config_free(&cfg);
 
-    hscan_t sc;
-    hnode_t *n;
-    hash_scan_begin(&sc, notfound_cache);
-    while (NULL != (n = hash_scan_next(&sc)))
-    {
-        void *data = hnode_get(n);
-        const void *key = hnode_getkey(n);
-        hash_scan_delfree(notfound_cache, n);
-        free((void *)key);
-        free(data);
-
-    }
-    hash_destroy(notfound_cache);
     exit(EXIT_SUCCESS);
 }
