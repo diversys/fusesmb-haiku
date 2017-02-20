@@ -551,7 +551,7 @@ int main(int argc, char *argv[])
         umask(oldmask);
         if (NULL == fp)
             exit(EXIT_FAILURE);
-        fprintf(fp, "%ld\n", sid);
+        fprintf(fp, "%ld\n", (long int)sid);
         fclose(fp);
 
         close(STDIN_FILENO);
