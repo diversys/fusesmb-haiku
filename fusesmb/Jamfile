@@ -16,7 +16,7 @@ Library common :
 # fusesmb
 # -------------------------------------------------------------------
 
-LINKLIBS  on fusesmb = -lbe -llocalestub -luserlandfs_fuse -lsmbclient -lposix_error_mapper -lstdc++ ;
+LINKLIBS  on fusesmb = -lbe -llocalestub -luserlandfs_fuse -lsmbclient -lposix_error_mapper -l$(LIBSTDC++) ;
 LINKFLAGS on fusesmb = -Xlinker -soname=_APP_ ;
 
 Main fusesmb :
@@ -37,7 +37,7 @@ AddResources fusesmb :
 # fusesmb-scan
 # -------------------------------------------------------------------
 
-LINKLIBS  on fusesmb-scan = -lbe -llocalestub -lsmbclient -lposix_error_mapper -lstdc++ ;
+LINKLIBS  on fusesmb-scan = -lbe -llocalestub -lsmbclient -lposix_error_mapper -l$(LIBSTDC++) ;
 
 Main fusesmb-scan :
 	cache.c

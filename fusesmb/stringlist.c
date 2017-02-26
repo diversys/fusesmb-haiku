@@ -85,15 +85,15 @@ int sl_add(stringlist_t *sl, char *str, int do_malloc)
     if (sl->numlines == sl->maxlines)
     {
         //printf("Realloc\n");
-        char **new;
-        new = (char **)realloc(sl->lines, (sl->maxlines + NUM_ROWS_PER_MALLOC)*sizeof(char *));
-        if (new == NULL)
+        char **newString;
+        newString = (char **)realloc(sl->lines, (sl->maxlines + NUM_ROWS_PER_MALLOC)*sizeof(char *));
+        if (newString == NULL)
         {
             //printf("Realloc failed\n");
             return -1;
         }
         sl->maxlines += NUM_ROWS_PER_MALLOC;
-        sl->lines = new;
+        sl->lines = newString;
     }
     if (do_malloc)
     {
@@ -151,7 +151,7 @@ char *sl_find(stringlist_t *sl, const char *str)
     if (sl->sorted == 1)
     {
         char **res;
-        if (NULL != (res = bsearch (&str, sl->lines, sl_count(sl), sizeof(char *), sl_strcmp)))
+        if (NULL != (res = (char**)bsearch (&str, sl->lines, sl_count(sl), sizeof(char *), sl_strcmp)))
             return *res;
         return NULL;
     }
@@ -176,7 +176,7 @@ char *sl_casefind(stringlist_t *sl, const char *str)
     if (sl->sorted == 2)
     {
         char **res;
-        if (NULL != (res = bsearch (&str, sl->lines, sl_count(sl), sizeof(char *), sl_strcasecmp)))
+        if (NULL != (res = (char**)bsearch (&str, sl->lines, sl_count(sl), sizeof(char *), sl_strcasecmp)))
             return *res;
         return NULL;
     }

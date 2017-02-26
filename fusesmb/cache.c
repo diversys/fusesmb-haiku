@@ -20,7 +20,6 @@
 
 #include "haiku/support.h"
 
-#include <libsmbclient.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,6 +30,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <libsmbclient.h>
 
 #include "stringlist.h"
 #include "smbctx.h"
@@ -129,7 +129,7 @@ static int nmblookup(const char *wg, stringlist_t *sl, hash_t *ipcache)
         if (ip_cmd_len >= (ip_cmd_size -1))
         {
             ip_cmd_size *= 2;
-            char *tmp = realloc(ip_cmd, ip_cmd_size *sizeof(char));
+            char *tmp = (char*)realloc(ip_cmd, ip_cmd_size *sizeof(char));
             if (tmp == NULL)
             {
                 ip_cmd_size /= 2;
@@ -359,7 +359,7 @@ use_popen:
         if (node == NULL)
             server_listing(ctx, cache, wg, sl_item(servers, i), NULL);
         else
-            server_listing(ctx, cache, wg, sl_item(servers, i), hnode_get(node));
+            server_listing(ctx, cache, wg, sl_item(servers, i), (const char*)hnode_get(node));
     }
 
     hscan_t sc;

@@ -2,7 +2,7 @@ SubDir TOP settings_add-on ;
 
 SubDirC++Flags -I/boot/system/develop/headers/os/add-ons/network_settings ;
 
-LINKLIBS  on SMBClient = -lbe -lbnetapi -llocalestub -lstdc++ /boot/system/preferences/Network ;
+LINKLIBS  on SMBClient = -lbe -lbnetapi -llocalestub -l$(LIBSTDC++) /boot/system/preferences/Network ;
 LINKFLAGS on SMBClient = -Xlinker -soname=SMBClient ;
 
 Main SMBClient :

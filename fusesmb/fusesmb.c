@@ -954,9 +954,9 @@ static int fusesmb_removexattr(const char* path, const char* name)
     return -EACCES;
 }
 
-static void *fusesmb_init()
+static void *fusesmb_init(struct fuse_conn_info* info)
 {
-    debug();
+    (void)info;
     if (0 != pthread_create(&cleanup_thread, NULL, smb_purge_thread, NULL))
         exit(EXIT_FAILURE);
     return NULL;
@@ -987,37 +987,45 @@ static int fusesmb_getfsinfo(struct fs_info* info)
 }
 
 static struct fuse_operations fusesmb_oper = {
-    .getattr    = fusesmb_getattr,
-    .readlink   = NULL, //fusesmb_readlink,
-    .opendir    = fusesmb_opendir,
-    .readdir    = fusesmb_readdir,
-    .releasedir = fusesmb_releasedir,
-    .mknod      = fusesmb_mknod,
-    .mkdir      = fusesmb_mkdir,
-    .symlink    = NULL, //fusesmb_symlink,
-    .unlink     = fusesmb_unlink,
-    .rmdir      = fusesmb_rmdir,
-    .rename     = fusesmb_rename,
-    .link       = NULL, //fusesmb_link,
-    .chmod      = fusesmb_chmod,
-    .chown      = fusesmb_chown,
-    .truncate   = fusesmb_truncate,
-    .utime      = fusesmb_utime,
-    .open       = fusesmb_open,
-    .read       = fusesmb_read,
-    .write      = fusesmb_write,
-    .statfs     = fusesmb_statfs,
-    .release    = fusesmb_release,
-    .fsync      = NULL, //fusesmb_fsync,
-    .init       = fusesmb_init,
-    .destroy    = fusesmb_destroy,
-    .create     = fusesmb_create,
-    .setxattr   = fusesmb_setxattr,
-    .getxattr   = fusesmb_getxattr,
-    .listxattr  = fusesmb_listxattr,
-    .removexattr= fusesmb_removexattr,
-
-    .get_fs_info = fusesmb_getfsinfo,
+    fusesmb_getattr,		// getattr
+    NULL,					// readlink
+    NULL,					// getdir
+    fusesmb_mknod,			// mknod
+    fusesmb_mkdir,			// mkdir
+    fusesmb_unlink,			// unlink
+    fusesmb_rmdir,			// rmdir
+    NULL,					// symlink
+    fusesmb_rename,			// rename
+    NULL,					// link
+    fusesmb_chmod,			// chmod
+    fusesmb_chown,			// chown
+    fusesmb_truncate,		// truncate
+    fusesmb_utime,			// utime
+    fusesmb_open,			// open
+    fusesmb_read,			// read
+    fusesmb_write,			// write
+    fusesmb_statfs,			// statfs
+    NULL,					// flush
+    fusesmb_release,		// release
+    NULL,					// fsync
+    fusesmb_setxattr,		// setxattr
+    fusesmb_getxattr,		// getxattr
+    fusesmb_listxattr,		// listxattr
+    fusesmb_removexattr,	// removexattr
+    fusesmb_opendir,		// opendir
+    fusesmb_readdir,		// readdir
+    fusesmb_releasedir,		// releasedir
+    NULL,					// fsyncdir
+    fusesmb_init,			// init
+    fusesmb_destroy,		// destroy
+    NULL,					// access
+    fusesmb_create,			// create
+	NULL,					// ftruncate
+	NULL,					// fgetattr
+	NULL,					// lock
+	NULL,					// utimens
+	NULL,					// bmap
+    fusesmb_getfsinfo		// get_fs_info
 };
 
 

@@ -159,7 +159,7 @@ static void grow_table(hash_t *hash)
 
     assert (2 * hash->nchains > hash->nchains);	/* 1 */
 
-    newtable = realloc(hash->table,
+    newtable = (hnode_t**)realloc(hash->table,
 	    sizeof *newtable * hash->nchains * 2);	/* 4 */
 
     if (newtable) {	/* 5 */
@@ -247,7 +247,7 @@ static void shrink_table(hash_t *hash)
 	else
 	    assert (hash->table[chain] == NULL);	/* 6 */
     }
-    newtable = realloc(hash->table,
+    newtable = (hnode_t**)realloc(hash->table,
 	    sizeof *newtable * nchains);		/* 7 */
     if (newtable)					/* 8 */
 	hash->table = newtable;
@@ -296,10 +296,10 @@ hash_t *hash_create(hashcount_t maxcount, hash_comp_t compfun,
     if (hash_val_t_bit == 0)	/* 1 */
 	compute_bits();
 
-    hash = malloc(sizeof *hash);	/* 2 */
+    hash = (hash_t*)malloc(sizeof *hash);	/* 2 */
 
     if (hash) {		/* 3 */
-	hash->table = malloc(sizeof *hash->table * INIT_SIZE);	/* 4 */
+		hash->table = (hnode_t**)malloc(sizeof *hash->table * INIT_SIZE);	/* 4 */
 	if (hash->table) {	/* 5 */
 	    hash->nchains = INIT_SIZE;		/* 6 */
 	    hash->highmark = INIT_SIZE * 2;
@@ -742,7 +742,7 @@ int hash_isempty(hash_t *hash)
 static hnode_t *hnode_alloc(void *context)
 {
     (void)context;
-    return malloc(sizeof *hnode_alloc(NULL));
+    return (hnode_t*)malloc(sizeof *hnode_alloc(NULL));
 }
 
 static void hnode_free(hnode_t *node, void *context)
@@ -758,7 +758,7 @@ static void hnode_free(hnode_t *node, void *context)
 
 hnode_t *hnode_create(void *data)
 {
-    hnode_t *node = malloc(sizeof *node);
+    hnode_t *node = (hnode_t*)malloc(sizeof *node);
     if (node) {
 	node->data = data;
 	node->next = NULL;
@@ -825,7 +825,7 @@ static hash_val_t hash_fun_default(const void *key)
 	0x69232f74U, 0xfead7bb3U, 0xe9089ab6U, 0xf012f6aeU,
     };
 
-    const unsigned char *str = key;
+    const unsigned char *str = (const unsigned char*)key;
     hash_val_t acc = 0;
 
     while (*str) {
@@ -841,7 +841,7 @@ static hash_val_t hash_fun_default(const void *key)
 
 static int hash_comp_default(const void *key1, const void *key2)
 {
-    return strcmp(key1, key2);
+    return strcmp((const char*)key1, (const char*)key2);
 }
 
 #ifdef KAZLIB_TEST_MAIN
