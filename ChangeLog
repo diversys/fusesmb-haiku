@@ -1,3 +1,36 @@
+2017-02-27 Julian Harnath <julian.harnath@rwth-aachen.de>
+
+	FuseSMB-Haiku v0.9
+
+    * First release of FuseSMB-Haiku, the Haiku port of fusesmb
+
+    * Adapted to be used on Haiku (www.haiku-os.org) using its
+      FUSE compatibility layer for userlandfs
+
+    * Provides deeper integration for Haiku with:
+        * Usage of Haiku FUSE extensions
+        * Attribute reading supplying MIME types including icons
+          for workgroup/share/server folders
+        * Usage of user settings directory for config/cache files
+        * Interactive authentication when accessing a share which
+          requires login
+        * Usage of BKeyStore to store login data
+        * A network preferences add-on to easily enable and configure
+          FuseSMB
+        * Automatic start using launch daemon
+
+    * Using Jam build system now. Recipe in haikuports repo can be
+      used for building a package.
+
+    * Requires Haiku hrev >= 50983, tested on gcc2h, gcc5h and x86_64
+
+    * Also includes various bugfixes and a few changes required for
+      compatibility
+
+-------------------------------------------------------------------------------
+ Original fusesmb ChangeLog below
+-------------------------------------------------------------------------------
+
 2005-10-01 Vincent Wagelaar <vincent@ricardis.tudelft.nl>
 
 	* fusesmb.c: Forgot a slash
